@@ -1,1 +1,744 @@
+local RF = loadstring(game:HttpGet('https://raw.githubusercontent.com/UI-Interface/CustomFIeld/main/RayField.lua'))()
 
+local MainVariables = {
+	ESP = false,
+	ESPColor = Color3.fromRGB(0, 255, 0), -- Default color
+	SkeletonESP = false,
+	ThreeDBoxESP = false,
+	NameEsp = false,
+	TracersESP = false,
+	Aimbot = false,
+	SpeedHack = false,
+	InfJump = false,
+	Jump = 30,
+	Speed = 16,
+	SilentAim = false,
+	AimToLoad = nil
+}
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
+local Mouse = Players.LocalPlayer:GetMouse()
+local UIS = game:GetService("UserInputService")
+
+local LocalPlayer = Players.LocalPlayer
+local ESP = {}
+ESP.__index = ESP
+
+-- Table to store player ESP components
+local espCache = {}
+local boxESPCache = {}
+local tracers = {}
+local tracersActive = false
+local ThreeDActive = false
+
+-- Body part connections for R15 and R6 rigs
+local bodyConnections = {
+    R15 = {
+        {"Head", "UpperTorso"},
+        {"UpperTorso", "LowerTorso"},
+        {"LowerTorso", "LeftUpperLeg"},
+        {"LowerTorso", "RightUpperLeg"},
+        {"LeftUpperLeg", "LeftLowerLeg"},
+        {"LeftLowerLeg", "LeftFoot"},
+        {"RightUpperLeg", "RightLowerLeg"},
+        {"RightLowerLeg", "RightFoot"},
+        {"UpperTorso", "LeftUpperArm"},
+        {"UpperTorso", "RightUpperArm"},
+        {"LeftUpperArm", "LeftLowerArm"},
+        {"LeftLowerArm", "LeftHand"},
+        {"RightUpperArm", "RightLowerArm"},
+        {"RightLowerArm", "RightHand"}
+    },
+    R6 = {
+        {"Head", "Torso"},
+        {"Torso", "Left Arm"},
+        {"Torso", "Right Arm"},
+        {"Torso", "Left Leg"},
+        {"Torso", "Right Leg"}
+    }
+}
+
+local SheetCC = RF:CreateWindow({
+   Name = "Sheet.CC",
+   LoadingTitle = "Sheet.CC POWERED BY RAYFIELD",
+   LoadingSubtitle = "by LocalScript & geecgo",
+})
+SheetCC:Prompt({
+	Title = 'Welcome',
+	Content = 'Hello there '..game.Players.LocalPlayer.Name..'! and thank you for using our script!',
+	Actions = {
+		Continue = {
+			Name = 'Continue',
+		}
+	}
+})
+
+local function Notify(T, Text, Dur)
+	RF:Notify({
+		Title = T,
+		Content = Text,
+		Duration = Dur,
+	})
+end
+
+-- << Tabs >> --
+local AimbotTab, VisualsTab, MiscTab, CreditsTab = SheetCC:CreateTab("Aimbot", 72724335844973), SheetCC:CreateTab("Visuals", 120129574453255), SheetCC:CreateTab("Misc", 12120687742), SheetCC:CreateTab("Credits", 9129156027)
+
+-- << Titles >> --
+local AimbotTitle, VisualsTitle, MiscTitle = AimbotTab:CreateSection("Aimbot", true), VisualsTab:CreateSection("Visuals", true), MiscTab:CreateSection("Misc", true)
+-- << Other Elements >> --
+local CreditsTabElements = {
+	Paragraph = CreditsTab:CreateParagraph({Title = "Contributors:", Content = [[
+		LocalScript - Basic functions and UI
+		geecgo - ESP]]})
+}
+
+local AimbotTabElements = {
+	Dropdown = AimbotTab:CreateDropdown({
+		Name = "Aimbot Selection",
+		CurrentOption = "Pick",
+		Options = {"No team check wall check","Team check wall check", "Team check no wall check"},
+		MultiSelection = false, 
+		Callback = function(Option)
+			for i, v in Option do 
+				if v == "No team check wall check" then
+					MainVariables.AimToLoad = loadstring(game:HttpGet("https://pastebin.com/raw/P12zi596"))
+				elseif v == "Team check wall check" then
+					MainVariables.AimToLoad = loadstring(game:HttpGet("https://pastebin.com/raw/azgnQ11t"))
+				elseif v == "Team check no wall check" then
+					MainVariables.AimToLoad = loadstring(game:HttpGet("https://pastebin.com/raw/28rGSquC"))
+				end
+			end
+		end,
+	}),
+	LoadButton = AimbotTab:CreateButton({
+   		Name = "Load Aimbot",
+   		Interact = 'Changable',
+   		Callback = function()
+			MainVariables.AimToLoad()
+   		end,
+	}),
+	SilentToggle = AimbotTab:CreateToggle({
+		Name = "Silent Aim Toggle",
+		CurrentValue = false,
+		Callback = function(Value)
+			MainVariables.Silent = Value
+		end,
+	}),
+}
+
+local VisualsTabElements = {
+	ESPToggle = VisualsTab:CreateToggle({
+		Name = "ESP Toggle",
+		CurrentValue = false,
+		Callback = function(Value)
+			MainVariables.ESP = Value
+		end,
+	}),
+	SkeletonESPToggle = VisualsTab:CreateToggle({
+		Name = "Skeleton ESP Toggle",
+		CurrentValue = false,
+		Callback = function(Value)
+			MainVariables.SkeletonESP = Value
+		end,
+	}),
+	BoxESPToggle = VisualsTab:CreateToggle({
+		Name = "3D Box ESP Toggle",
+		CurrentValue = false,
+		Callback = function(Value)
+			MainVariables.ThreeDBoxESP = Value
+		end,
+	}),
+	TracersESPToggle = VisualsTab:CreateToggle({
+		Name = "Tracers ESP Toggle",
+		CurrentValue = false,
+		Callback = function(Value)
+			MainVariables.TracersESP = Value
+		end,
+	}),
+	InfoESPToggle = VisualsTab:CreateToggle({
+		Name = "Info ESP Toggle",
+		CurrentValue = false,
+		Callback = function(Value)
+			MainVariables.InfoESP = Value
+		end,
+	}),
+	EspColorPicker = VisualsTab:CreateColorPicker({
+		Name = "Color Picker",
+		Info = 'The color what is used for ESP.',
+		Color = Color3.fromRGB(0,255,0),
+		Flag = "ESPColorPicker",
+		Callback = function(Value)
+			MainVariables.ESPColor = Value
+		end
+	})
+}
+
+local MiscTabElements = {
+	SpeedHackToggle = MiscTab:CreateToggle({
+		Name = "SpeedHack Toggle",
+		CurrentValue = false,
+		Callback = function(Value)
+			MainVariables.SpeedHack = Value
+		end,
+	}),
+	InfJumpToggle = MiscTab:CreateToggle({
+		Name = "InfJump Toggle",
+		CurrentValue = false,
+		Callback = function(Value)
+			MainVariables.InfJump = Value
+		end,
+	}),
+	SpeedSlider = MiscTab:CreateSlider({
+		Name = "Speed Slider",
+		Range = {0, 50},
+		Increment = 1,
+		Suffix = "Speed",
+		CurrentValue = 16,
+		Flag = "SpeedSlider",
+		Callback = function(Value)
+			MainVariables.Speed = Value
+			LocalPlayer.Character.Humanoid.WalkSpeed = Value
+		end,
+	}),
+	JumpSlider = MiscTab:CreateSlider({
+		Name = "InfJump Power",
+		Range = {0, 70},
+		Increment = 1,
+		Suffix = "Power",
+		CurrentValue = 16,
+		Flag = "InfJumpSlider",
+		Callback = function(Value)
+			MainVariables.Jump = Value
+		end,
+	}),
+	FlyButton = MiscTab:CreateButton({
+		Name = "Load Fly",
+		Interact = 'Changable',
+		Callback = function()
+			loadstring(game:HttpGet("https://pastebin.com/raw/EWS2RsMz"))()
+			Notify("Fly Hack", "To toggle the fly press F", 3)
+		end
+	})
+}
+
+-- << Functions >> --
+game.Players.LocalPlayer.Character.Humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
+    if not MainVariables.SpeedHack then return end
+	game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = MainVariables.Speed
+end)
+local function GetDirection()
+    local MoveDirection = game.Players.LocalPlayer.Character.Humanoid.MoveDirection
+    if MoveDirection.Magnitude > 0 then
+        return MoveDirection.Unit
+    end
+    return Vector3.new(0, 0, 0)
+end
+
+function Action(Object, Function)
+    if Object ~= nil then
+        Function(Object)
+    end
+end
+
+UIS.InputBegan:connect(function(UserInput)
+    if UserInput.UserInputType == Enum.UserInputType.Keyboard and UserInput.KeyCode == Enum.KeyCode.Space and MainVariables.InfJump then
+        Action(game.Players.LocalPlayer.Character.Humanoid, function(self)
+            if self:GetState() == Enum.HumanoidStateType.Jumping or self:GetState() == Enum.HumanoidStateType.Freefall then
+                local CurrentDirection = GetDirection()
+				Action(self.Parent.HumanoidRootPart, function(self)
+            		self.Velocity = Vector3.new(CurrentDirection.X, MainVariables.Jump, CurrentDirection.Z)
+                end)
+            end
+        end)
+    end
+end)
+
+-- << SKELETON ESP >> --
+local function createLine()
+    return Drawing.new("Line")
+end
+
+local function updateESP(player)
+    if player == LocalPlayer then return end
+
+    local character = player.Character
+    if not character or not character:FindFirstChild("HumanoidRootPart") then
+        if espCache[player] then
+            for _, line in pairs(espCache[player]) do
+                line.Visible = false
+            end
+        end
+        return
+    end
+
+    local humanoid = character:FindFirstChild("Humanoid")
+    if not humanoid then return end
+
+    local rigType = humanoid.RigType.Name
+    local connections = bodyConnections[rigType]
+
+    if not connections then return end
+
+    if not espCache[player] then
+        espCache[player] = {}
+        for _, connection in pairs(connections) do
+            local line = createLine()
+            line.Color = MainVariables.ESPColor
+            line.Thickness = 1
+            espCache[player][connection[1] .. "-" .. connection[2]] = line
+        end
+    end
+
+    for _, connection in pairs(connections) do
+        local partA = character:FindFirstChild(connection[1])
+        local partB = character:FindFirstChild(connection[2])
+        local line = espCache[player][connection[1] .. "-" .. connection[2]]
+
+        if partA and partB and line then
+            local screenPosA, onScreenA = Camera:WorldToViewportPoint(partA.Position)
+            local screenPosB, onScreenB = Camera:WorldToViewportPoint(partB.Position)
+			line.Color = MainVariables.ESPColor
+            if onScreenA and onScreenB then
+                line.From = Vector2.new(screenPosA.X, screenPosA.Y)
+                line.To = Vector2.new(screenPosB.X, screenPosB.Y)
+                line.Visible = true
+            else
+                line.Visible = false
+            end
+        elseif line then
+            line.Visible = false
+        end
+    end
+end
+
+local function clearESP(player)
+    if espCache[player] then
+        for _, line in pairs(espCache[player]) do
+            line:Remove()
+        end
+        espCache[player] = nil
+    end
+end
+
+-- << TRACERS ESP >> --
+
+local yOffset = 75 -- Change this to move the line's start point down
+
+local function createTracer(player)
+    if tracers[player] then
+        tracers[player]:Remove()
+    end
+
+    local tracer = Drawing.new("Line")
+    tracer.Thickness = 1
+    tracer.Color = MainVariables.ESPColor
+    tracer.Transparency = 1
+    tracer.Visible = false
+    tracers[player] = tracer
+
+    player.CharacterAdded:Connect(function(character)
+        character:WaitForChild("Humanoid").Died:Connect(function()
+            if tracers[player] then
+                tracers[player].Visible = false
+            end
+        end)
+    end)
+end
+
+local function updateTracers()
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local humanoidRootPart = player.Character.HumanoidRootPart
+            local screenPosition, onScreen = Camera:WorldToViewportPoint(humanoidRootPart.Position)
+
+            local tracer = tracers[player]
+            if tracer then
+				tracer.Color = MainVariables.ESPColor
+                if onScreen then
+                    -- Start of the line at the mouse position with Y-offset
+                    tracer.From = Vector2.new(Mouse.X, Mouse.Y + yOffset)
+
+                    -- End of the line fixed at the HumanoidRootPart's screen position
+                    tracer.To = Vector2.new(screenPosition.X, screenPosition.Y)
+
+                    -- Make the tracer visible
+                    tracer.Visible = true
+                else
+                    -- Hide the tracer if the player is off-screen
+                    tracer.Visible = false
+                end
+            end
+        elseif tracers[player] then
+            -- Hide the tracer if the character or HumanoidRootPart is invalid
+            tracers[player].Visible = false
+        end
+    end
+end
+
+-- Create tracers for all Players
+Players.PlayerAdded:Connect(function(player)
+	if not MainVariables.TracersESP then return end
+    createTracer(player)
+end)
+-- << 3D BOX ESP >> --
+
+local BOX_COLOR = MainVariables.ESPColor -- Yellow
+local LINE_THICKNESS = 1 -- Thickness of the box lines
+
+-- Function to create 3D box ESP
+local function createBox(character)
+    local boxLines = {}
+
+    for i = 1, 12 do
+        local line = Drawing.new("Line")
+        line.Thickness = LINE_THICKNESS
+        line.Color = BOX_COLOR
+        line.Visible = false
+        table.insert(boxLines, line)
+    end
+
+    return boxLines
+end
+
+-- Function to update box ESP
+local function updateBox(character, boxLines)
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    if not rootPart then return end
+
+    -- Define box corners relative to HumanoidRootPart
+    local size = Vector3.new(4, 6, 4) -- Customize box size as needed
+    local corners = {
+        rootPart.CFrame * CFrame.new(-size.X / 2, size.Y / 2, -size.Z / 2).Position, -- Top front left
+        rootPart.CFrame * CFrame.new(size.X / 2, size.Y / 2, -size.Z / 2).Position,  -- Top front right
+        rootPart.CFrame * CFrame.new(-size.X / 2, size.Y / 2, size.Z / 2).Position,  -- Top back left
+        rootPart.CFrame * CFrame.new(size.X / 2, size.Y / 2, size.Z / 2).Position,   -- Top back right
+        rootPart.CFrame * CFrame.new(-size.X / 2, -size.Y / 2, -size.Z / 2).Position, -- Bottom front left
+        rootPart.CFrame * CFrame.new(size.X / 2, -size.Y / 2, -size.Z / 2).Position,  -- Bottom front right
+        rootPart.CFrame * CFrame.new(-size.X / 2, -size.Y / 2, size.Z / 2).Position,  -- Bottom back left
+        rootPart.CFrame * CFrame.new(size.X / 2, -size.Y / 2, size.Z / 2).Position   -- Bottom back right
+    }
+
+    -- Define edges between corners
+    local edges = {
+        {1, 2}, {2, 4}, {4, 3}, {3, 1}, -- Top square
+        {5, 6}, {6, 8}, {8, 7}, {7, 5}, -- Bottom square
+        {1, 5}, {2, 6}, {3, 7}, {4, 8}  -- Vertical edges
+    }
+
+    -- Update lines
+    for i, edge in ipairs(edges) do
+        local corner1, visible1 = Camera:WorldToViewportPoint(corners[edge[1]])
+        local corner2, visible2 = Camera:WorldToViewportPoint(corners[edge[2]])
+
+        if visible1 and visible2 then
+			boxLines[i].Color = MainVariables.ESPColor
+            boxLines[i].From = Vector2.new(corner1.X, corner1.Y)
+            boxLines[i].To = Vector2.new(corner2.X, corner2.Y)
+            boxLines[i].Visible = true
+        else
+            boxLines[i].Visible = false
+        end
+    end
+end
+
+-- Function to remove ESP
+local function removeBox(boxLines)
+    for _, line in ipairs(boxLines) do
+        line:Remove()
+    end
+end
+
+-- Name ESP
+-- settings
+local settings = {
+   defaultcolor = Color3.fromRGB(255, 255, 255), -- white color
+   outlineColor = Color3.fromRGB(0, 0, 0), -- black outline color
+   teamcheck = false, -- remove team check
+   teamcolor = false -- remove team color
+};
+
+-- functions
+local newVector2, newColor3, newDrawing = Vector2.new, Color3.new, Drawing.new;
+local tan, rad = math.tan, math.rad;
+local round = function(...) local a = {}; for i,v in next, table.pack(...) do a[i] = math.round(v); end return unpack(a); end;
+local wtvp = function(...) local a, b = Camera.WorldToViewportPoint(Camera, ...) return newVector2(a.X, a.Y), b, a.Z end;
+
+local infoESPCache = {};
+local function createEsp(player)
+   	local drawings = {};
+   
+	drawings.nameText = newDrawing("Text");
+	drawings.nameText.Size = 16;
+	drawings.nameText.Color = settings.defaultcolor; -- white color
+	drawings.nameText.Outline = true; -- Enable outline for the text
+	drawings.nameText.OutlineColor = settings.outlineColor; -- Black outline for the text
+	drawings.nameText.Visible = false;
+	drawings.nameText.ZIndex = 3;
+
+	drawings.distanceText = newDrawing("Text");
+	drawings.distanceText.Size = 16;
+	drawings.distanceText.Color = settings.defaultcolor; -- white color
+	drawings.distanceText.Outline = true; -- Enable outline for the text
+	drawings.distanceText.OutlineColor = settings.outlineColor; -- Black outline for the text
+	drawings.distanceText.Visible = false;
+	drawings.distanceText.ZIndex = 3;
+
+    drawings.box = newDrawing("Square");
+   	drawings.box.Thickness = 1;
+	drawings.box.Filled = false;
+	drawings.box.Color = settings.defaultcolor; -- always white
+	drawings.box.Visible = false;
+	drawings.box.ZIndex = 2;
+
+	drawings.boxoutline = newDrawing("Square");
+	drawings.boxoutline.Thickness = 3;
+	drawings.boxoutline.Filled = false;
+	drawings.boxoutline.Color = newColor3();
+	drawings.boxoutline.Visible = false;
+	drawings.boxoutline.ZIndex = 1;
+
+   	infoESPCache[player] = drawings;
+end
+
+local function removeEsp(player)
+   if rawget(infoESPCache, player) then
+       for _, drawing in next, infoESPCache[player] do
+           drawing:Remove();
+       end
+       infoESPCache[player] = nil;
+   end
+end
+
+local function updateNameEsp(player, esp)
+   local character = player and player.Character;
+   if character then
+       local humanoidRootPart = character:FindFirstChild("HumanoidRootPart") or character:FindFirstChild("LowerTorso");
+       if humanoidRootPart then
+           local cframe = humanoidRootPart.CFrame;
+           local position, visible, depth = wtvp(cframe.Position);
+           esp.nameText.Visible = visible;
+           esp.distanceText.Visible = visible;
+           esp.box.Visible = visible;
+           esp.boxoutline.Visible = visible;
+
+           if cframe and visible then
+               -- Get the player's name
+               local playerName = player.Name;
+
+               -- Update the name text
+               esp.nameText.Text = "[" .. playerName .. "]";
+               local nameWidth = esp.nameText.TextBounds.X;
+
+               -- Calculate the distance to the local player
+               local distance = math.floor((LocalPlayer.Character.HumanoidRootPart.Position - character.HumanoidRootPart.Position).Magnitude);
+               
+               -- Update the distance text
+               esp.distanceText.Text = "[" .. distance .. "m]";
+               local distanceWidth = esp.distanceText.TextBounds.X;
+
+               -- Use WorldToViewportPoint for correct screen positioning
+               local nameScreenPosition = wtvp(cframe.Position + Vector3.new(0, -2, 0)) -- Offset slightly below the torso
+               local distanceScreenPosition = wtvp(cframe.Position + Vector3.new(0, 2.5, 0)) -- Add a small offset above the head
+
+               -- Position the text at the lower torso
+               if nameScreenPosition then
+                   esp.nameText.Position = newVector2(round(nameScreenPosition.X - nameWidth / 2), round(nameScreenPosition.Y));
+               end
+
+               -- Position the text at the top-center of the player's head
+               if distanceScreenPosition then
+                   esp.distanceText.Position = newVector2(round(distanceScreenPosition.X - distanceWidth / 2), round(distanceScreenPosition.Y));
+               end
+
+               -- Update the box and box outline
+               local scaleFactor = 1 / (depth * tan(rad(Camera.FieldOfView / 2)) * 2) * 1000;
+               local width, height = round(4 * scaleFactor, 5 * scaleFactor);
+               local x, y = round(position.X, position.Y);
+
+               esp.box.Size = newVector2(width, height);
+               esp.box.Position = newVector2(round(x - width / 2, y - height / 2));
+               esp.box.Color = MainVariables.ESPColor
+
+               esp.boxoutline.Size = esp.box.Size;
+               esp.boxoutline.Position = esp.box.Position;
+           end
+       end
+   else
+       esp.nameText.Visible = false;
+       esp.distanceText.Visible = false;
+       esp.box.Visible = false;
+       esp.boxoutline.Visible = false;
+   end
+end
+
+local infoESPActive = false
+local OldSizes = {
+	RUL = game.Players.LocalPlayer.Character["RightUpperLeg"].Size,
+	LUL = game.Players.LocalPlayer.Character["LeftUpperLeg"].Size,
+	HHZ = game.Players.LocalPlayer.Character.HeadHB.Size,
+	HRPZ = game.Players.LocalPlayer.Character.HumanoidRootPart.Size
+}
+task.spawn(function()
+    RunService.RenderStepped:Connect(function()
+        -- Check if ESP is enabled
+        if MainVariables.ESP then
+            if MainVariables.SkeletonESP then
+                for _, player in ipairs(Players:GetPlayers()) do
+                    updateESP(player)
+                end
+            else
+                for player, _ in pairs(espCache) do
+                    clearESP(player)
+                end
+            end
+
+            if MainVariables.TracersESP then
+                if not tracersActive then
+                    for _, player in ipairs(Players:GetPlayers()) do
+                        createTracer(player)
+                    end
+                    tracersActive = true
+                end
+                updateTracers()
+            else
+                for _, tracer in pairs(tracers) do
+                    tracer:Remove()
+                end
+                tracers = {}
+                tracersActive = false
+            end
+
+            if MainVariables.ThreeDBoxESP then
+                for _, player in pairs(Players:GetPlayers()) do
+                    if player ~= LocalPlayer and player.Character then
+                        local character = player.Character
+                        local boxLines = boxESPCache[player]
+
+                        if not boxLines then
+                            boxESPCache[player] = createBox(character)
+                        else
+                            updateBox(character, boxLines)
+                        end
+                    elseif boxESPCache[player] then
+                        removeBox(boxESPCache[player])
+                        boxESPCache[player] = nil
+                    end
+                end
+			else
+				for player, _ in pairs(boxESPCache) do
+					removeBox(boxESPCache[player])
+					boxESPCache[player] = nil
+            	end
+            end
+
+			if MainVariables.InfoESP then
+				if not infoESPActive then
+					for _, player in next, Players:GetPlayers() do
+   						if player ~= LocalPlayer then
+       						createEsp(player);
+   						end
+					end
+					infoESPActive = true
+				end
+				for player, drawings in next, infoESPCache do
+					if settings.teamcheck and player.Team == LocalPlayer.Team then
+						continue;
+					end
+
+					if drawings and player ~= LocalPlayer then
+						updateNameEsp(player, drawings);
+					end
+				end
+
+			else
+				infoESPActive = false
+				for player, _ in pairs(infoESPCache) do
+					removeEsp(player)
+            	end
+			end
+        else
+            for player, _ in pairs(espCache) do
+                clearESP(player)
+                removeBox(espCache[player])
+                espCache[player] = nil
+            end
+			for player, _ in pairs(boxESPCache) do
+				removeBox(boxESPCache[player])
+				boxESPCache[player] = nil
+            end
+			for player, _ in pairs(infoESPCache) do
+				removeEsp(player)
+            end
+
+            for _, tracer in pairs(tracers) do
+                tracer:Remove()
+            end
+            tracers = {}
+            tracersActive = false
+			infoESPActive = false
+        end
+	if MainVariables.Silent then
+		for i, Nigga in pairs(game:GetService("Players"):GetPlayers()) do
+				if Nigga.Name ~= game.Players.LocalPlayer.Name and Nigga.Character then
+					Nigga.Character.RightUpperLeg.CanCollide = false
+					Nigga.Character.RightUpperLeg.Transparency = 10
+					Nigga.Character.RightUpperLeg.Size = Vector3.new(13,13,13)
+					
+					Nigga.Character.LeftUpperLeg.CanCollide = false
+					Nigga.Character.LeftUpperLeg.Transparency = 10
+					Nigga.Character.LeftUpperLeg.Size = Vector3.new(13,13,13)
+					
+					Nigga.Character.HeadHB.CanCollide = false
+					Nigga.Character.HeadHB.Transparency = 10
+					Nigga.Character.HeadHB.Size = Vector3.new(13,13,13)
+					
+					Nigga.Character.HumanoidRootPart.CanCollide = false
+					Nigga.Character.HumanoidRootPart.Transparency = 10
+					Nigga.Character.HumanoidRootPart.Size = Vector3.new(13,13,13)
+				end
+			end
+		else
+		for i, Nigga in pairs(game:GetService("Players"):GetPlayers()) do
+				if Nigga.Name ~= game.Players.LocalPlayer.Name and Nigga.Character then
+					Nigga.Character.RightUpperLeg.CanCollide = false
+					Nigga.Character.RightUpperLeg.Transparency = 10
+					Nigga.Character.RightUpperLeg.Size = OldSizes.RUL
+					
+					Nigga.Character.LeftUpperLeg.CanCollide = false
+					Nigga.Character.LeftUpperLeg.Transparency = 10
+					Nigga.Character.LeftUpperLeg.Size = OldSizes.LUL
+					
+					Nigga.Character.HeadHB.CanCollide = false
+					Nigga.Character.HeadHB.Transparency = 10
+					Nigga.Character.HeadHB.Size = OldSizes.HHZ
+					
+					Nigga.Character.HumanoidRootPart.CanCollide = false
+					Nigga.Character.HumanoidRootPart.Transparency = 10
+					Nigga.Character.HumanoidRootPart.Size = OldSizes.HRPZ
+				end
+			end
+		end	
+    end)
+end)
+
+Players.PlayerAdded:Connect(function(player)
+   createEsp(player);
+end);
+
+game:GetService("Players").PlayerRemoving:Connect(function(player)
+	-- Delete Skeletons
+	clearESP(player)
+
+	-- Delete Tracers
+	tracers[player]:Remove()
+	tracers[player] = nil
+
+	-- Delete 3D boxes
+	removeBox(boxESPCache[player])
+	boxESPCache[player] = nil
+
+	-- Delete Info ESP
+	removeEsp(player)
+end)
