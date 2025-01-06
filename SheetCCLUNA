@@ -95,29 +95,111 @@ local CreditsTabElements = {
 }
 
 local AimbotTabElements = {
-	Dropdown = AimbotTab:CreateDropdown({
-		Name = "Aimbot Selection",
-		CurrentOption = "Pick",
-		Options = {"No team check wall check","Team check wall check", "Team check no wall check"},
-		MultiSelection = false, 
+	LoadButton = AimbotTab:CreateToggle({
+   		Name = "Aimbot",
+   		Callback = function(Value)
+			if Value and not _G.Aimbot then
+				loadstring(game:HttpGet("https://pastebin.com/raw/n2Ucmje6"))()
+			end
+			if Value and _G.Aimbot then
+				_G.Aimbot.Enabled = true
+			elseif not Value and _G.Aimbot then
+				_G.Aimbot.Enabled = false
+			end
+		end,
+	}),
+	WallCheck = AimbotTab:CreateToggle({
+   		Name = "Wallcheck",
+   		Callback = function(Value)
+			if Value and _G.Aimbot then
+				_G.Aimbot.WallCheck = true
+			elseif not Value and _G.Aimbot then
+				_G.Aimbot.WallCheck = false
+			end
+		end,
+	}),
+	TeamCheck = AimbotTab:CreateToggle({
+   		Name = "Team Check",
+   		Callback = function(Value)
+			if Value and _G.Aimbot then
+				_G.Aimbot.TeamCheck = true
+			elseif not Value and _G.Aimbot then
+				_G.Aimbot.TeamCheck = false
+			end
+		end,
+	}),
+	FOVEnabled = AimbotTab:CreateToggle({
+   		Name = "FOV Enabled",
+   		Callback = function(Value)
+			if Value and _G.Aimbot then
+				_G.Aimbot.FOVEnabled = true
+			elseif not Value and _G.Aimbot then
+				_G.Aimbot.FOVEnabled = false
+			end
+		end,
+	}),
+	TransparencySlider = AimbotTab:CreateSlider({
+		Name = "FOV Transparency",
+		Range = {0, 1},
+		Increment = 0.1,
+		Suffix = "Transparency",
+		CurrentValue = 0.5,
+		Flag = "TransparencySlider",
+		Callback = function(Value)
+			if _G.Aimbot and _G.Aimbot.FOVTransparency then
+				_G.Aimbot.FOVTransparency = Value
+			end
+		end,
+	}),
+	SmoothingSlider = AimbotTab:CreateSlider({
+		Name = "Smoothing",
+		Range = {0, 1},
+		Increment = 0.1,
+		Suffix = "Smooth",
+		CurrentValue = 0.4,
+		Flag = "SmoothingSlider",
+		Callback = function(Value)
+			if _G.Aimbot and _G.Aimbot.Smoothing then
+				_G.Aimbot.Smoothing = Value
+			end
+		end,
+	}),
+	RadiusSlider = AimbotTab:CreateSlider({
+		Name = "FOV Radius",
+		Range = {0, 1000},
+		Increment = 1,
+		Suffix = "Radius",
+		CurrentValue = 150,
+		Flag = "RadiusSlider",
+		Callback = function(Value)
+			if _G.Aimbot and _G.Aimbot.FOVRadius then
+				_G.Aimbot.FOVRadius = Value
+			end
+		end,
+	}),
+	LockPart = AimbotTab:CreateDropdown({
+		Name = "Lock Part",
+		Options = {"Head","Torso"},
+		CurrentOption = "Head",
+		MultiSelection = false,
+		Flag = "LockPart",
 		Callback = function(Option)
-			for i, v in Option do 
-				if v == "No team check wall check" then
-					MainVariables.AimToLoad = loadstring(game:HttpGet("https://pastebin.com/raw/P12zi596"))
-				elseif v == "Team check wall check" then
-					MainVariables.AimToLoad = loadstring(game:HttpGet("https://pastebin.com/raw/azgnQ11t"))
-				elseif v == "Team check no wall check" then
-					MainVariables.AimToLoad = loadstring(game:HttpGet("https://pastebin.com/raw/28rGSquC"))
+			if _G.Aimbot and _G.Aimbot.LockPart then
+				for i, Opt in pairs(Option) do
+					_G.Aimbot.LockPart = Opt
 				end
 			end
 		end,
 	}),
-	LoadButton = AimbotTab:CreateButton({
-   		Name = "Load Aimbot",
-   		Interact = 'Changable',
-   		Callback = function()
-			MainVariables.AimToLoad()
-   		end,
+	FovColor = AimbotTab:CreateColorPicker({
+		Name = "FOV Color",
+		Color = Color3.new(1, 0, 0),
+		Flag = "FovColorPicker",
+		Callback = function(Value)
+			if _G.Aimbot and _G.Aimbot.FOVColor then
+				_G.Aimbot.FOVColor = Value
+			end
+		end
 	}),
 	SilentToggle = AimbotTab:CreateToggle({
 		Name = "Silent Aim Toggle",
@@ -732,13 +814,19 @@ game:GetService("Players").PlayerRemoving:Connect(function(player)
 	clearESP(player)
 
 	-- Delete Tracers
-	tracers[player]:Remove()
-	tracers[player] = nil
+	if MainVariables.TracersESP then
+		tracers[player]:Remove()
+		tracers[player] = nil
+	end
 
 	-- Delete 3D boxes
-	removeBox(boxESPCache[player])
-	boxESPCache[player] = nil
+	if MainVariables.ThreeDBoxESP then
+		removeBox(boxESPCache[player])
+		boxESPCache[player] = nil
+	end
 
 	-- Delete Info ESP
-	removeEsp(player)
+	if MainVariables.InfoESP then
+		removeEsp(player)
+	end
 end)
