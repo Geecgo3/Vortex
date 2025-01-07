@@ -10,6 +10,12 @@ local MainVariables = {
 	Aimbot = false,
 	SpeedHack = false,
 	InfJump = false,
+	NoSpread = false,
+	FireRate = false,
+	InfAmmo = false,
+	FullAuto = false,
+	InstantReload = false,
+	NoRecoil = false,
 	Jump = 30,
 	Speed = 16,
 	SilentAim = false,
@@ -20,6 +26,8 @@ local RunService = game:GetService("RunService")
 local Camera = workspace.CurrentCamera
 local Mouse = Players.LocalPlayer:GetMouse()
 local UIS = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local WeaponsFolder = ReplicatedStorage:FindFirstChild("Weapons")
 
 local LocalPlayer = Players.LocalPlayer
 local ESP = {}
@@ -78,7 +86,7 @@ local function Notify(T, Text, Dur)
 	RF:Notify({
 		Title = T,
 		Content = Text,
-		Duration = Dur,
+		Duration = Dur or 3,
 	})
 end
 
@@ -90,8 +98,8 @@ local AimbotTitle, VisualsTitle, MiscTitle = AimbotTab:CreateSection("Aimbot", t
 -- << Other Elements >> --
 local CreditsTabElements = {
 	Paragraph = CreditsTab:CreateParagraph({Title = "Contributors:", Content = [[
-		LocalScript - Basic functions and UI
-		geecgo - ESP]]})
+		LocalScript - Making everything compatible with GUI
+		geecgo - ESP, Aimbot, Fly, etc.]]})
 }
 
 local AimbotTabElements = {
@@ -302,7 +310,120 @@ local MiscTabElements = {
 			loadstring(game:HttpGet("https://pastebin.com/raw/EWS2RsMz"))()
 			Notify("Fly Hack", "To toggle the fly press F", 3)
 		end
-	})
+	}),
+	KillAll = MiscTab:CreateToggle({
+		Name = "Kill All",
+		CurrentValue = false,
+		Callback = function(Value)
+			if not _G.Running then
+				loadstring(game:HttpGet("https://pastebin.com/raw/vGhAPBHL"))()
+				Notify("Make sure you are shooting. Made by geecgo")
+			end
+			if Value then
+				_G.Running = Value
+			end
+		end,
+	}),
+	NoSpread = MiscTab:CreateButton({
+		Name = "No Spread",
+		Callback = function()
+			if WeaponsFolder then
+				for _, weapon in ipairs(WeaponsFolder:GetChildren()) do
+					local MaxSpread = weapon:FindFirstChild("MaxSpread")
+					if MaxSpread then
+						MaxSpread.Value = 0.1
+					end
+				end
+			else
+				Notify("Weapons folder not found in ReplicatedStorage.")
+			end
+		end,
+	}),
+	NoRecoil = MiscTab:CreateButton({
+		Name = "No Recoil",
+		Callback = function()
+			if WeaponsFolder then
+				for _, weapon in ipairs(WeaponsFolder:GetChildren()) do
+					local Recoil = weapon:FindFirstChild("RecoilControl")
+					if Recoil then
+						Recoil.Value = 0.1 -- Set the Auto to true (checked)
+					end
+				end
+			else
+				warn("Weapons folder not found in ReplicatedStorage.")
+			end
+		end,
+	}),
+	FireRate = MiscTab:CreateButton({
+		Name = "Fire Rate",
+		Callback = function()
+			if WeaponsFolder then
+				for _, weapon in ipairs(WeaponsFolder:GetChildren()) do
+					local fireRate = weapon:FindFirstChild("FireRate")
+					if fireRate then
+						fireRate.Value = 0.02 -- Fire rate for simulating fast firing
+
+						-- Control firing with a custom timer to simulate rapid shots without causing crashes
+						local lastShotTime = 0
+						weapon.Changed:Connect(function()
+							if fireRate.Value == 0.02 then
+								-- Set the timer to fire based on Heartbeat
+								RunService.Heartbeat:Connect(function(_, dt)
+									lastShotTime = lastShotTime + dt
+									if lastShotTime >= 0.02 then
+										print("Firing!")
+										lastShotTime = 0
+									end
+								end)
+							end
+						end)
+					end
+				end
+			else
+				Notify("Weapons folder not found in ReplicatedStorage.")
+			end
+		end,
+	}),
+	InfAmmo = MiscTab:CreateToggle({
+		Name = "Infinite Ammo",
+		CurrentValue = false,
+		Callback = function(Value)
+			MainVariables.InfAmmo = Value
+		end,
+	}),
+	FullAuto = MiscTab:CreateToggle({
+		Name = "Full Auto",
+		CurrentValue = false,
+		Callback = function(Value)
+			if WeaponsFolder then
+				for _, weapon in ipairs(WeaponsFolder:GetChildren()) do
+					local auto = weapon:FindFirstChild("Auto")
+					if auto and Value then
+						auto.Value = true
+					elseif auto and not Value then
+						auto.Value = false
+					end
+				end
+			else
+				Notify("Weapons folder not found in ReplicatedStorage.")
+			end
+		end,
+	}),
+	InstaReload = MiscTab:CreateButton({
+		Name = "Instant Reload",
+		Callback = function(Value)
+			if WeaponsFolder then
+				for _, weapon in ipairs(WeaponsFolder:GetChildren()) do
+					local ReloadTime = weapon:FindFirstChild("ReloadTime")
+					if ReloadTime then
+						ReloadTime.Value = 0.1 -- Set the Auto to true (checked)
+					end
+				end
+			else
+				Notify("Weapons folder not found in ReplicatedStorage.")
+			end
+		end,
+	}),
 }
 
 -- << Functions >> --
@@ -801,7 +922,15 @@ task.spawn(function()
 					Nigga.Character.HumanoidRootPart.Size = OldSizes.HRPZ
 				end
 			end
-		end	
+		end
+	if MainVariables.InfAmmo and WeaponsFolder then
+			for _, weapon in ipairs(WeaponsFolder:GetChildren()) do
+				local ammo = weapon:FindFirstChild("Ammo")
+				if ammo then
+					ammo.Value = 999 -- Set the Ammo to 999
+				end
+			end
+		end
     end)
 end)
 
