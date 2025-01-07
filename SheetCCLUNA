@@ -179,7 +179,7 @@ local AimbotTabElements = {
 	}),
 	LockPart = AimbotTab:CreateDropdown({
 		Name = "Lock Part",
-		Options = {"Head","Torso"},
+		Options = {"Head","UpperTorso"},
 		CurrentOption = "Head",
 		MultiSelection = false,
 		Flag = "LockPart",
