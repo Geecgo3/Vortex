@@ -1,0 +1,19 @@
+local toggle = false  -- Variable to keep track of the toggle state
+
+-- Function to handle the Insert key press
+local function onKeyPress(input)
+    if input.KeyCode == Enum.KeyCode.Insert then
+        if toggle then
+            -- Close the GUI or whatever was opened
+            toggle = false
+            -- Add your code to close the GUI here, if needed.
+        else
+            -- Open or execute the script
+            loadstring(game:HttpGet(('https://raw.githubusercontent.com/fortnitemodder/SYNAPSE/main/2022workinglegit')))()
+            toggle = true
+        end
+    end
+end
+
+-- Listen for user input
+game:GetService("UserInputService").InputBegan:Connect(onKeyPress)
