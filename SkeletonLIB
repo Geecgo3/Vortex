@@ -1,0 +1,119 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
+
+local LocalPlayer = Players.LocalPlayer
+local ESP = {}
+ESP.__index = ESP
+
+-- Table to store player ESP components
+local espCache = {}
+
+-- Body part connections for R15 and R6 rigs
+local bodyConnections = {
+    R15 = {
+        {"Head", "UpperTorso"},
+        {"UpperTorso", "LowerTorso"},
+        {"LowerTorso", "LeftUpperLeg"},
+        {"LowerTorso", "RightUpperLeg"},
+        {"LeftUpperLeg", "LeftLowerLeg"},
+        {"LeftLowerLeg", "LeftFoot"},
+        {"RightUpperLeg", "RightLowerLeg"},
+        {"RightLowerLeg", "RightFoot"},
+        {"UpperTorso", "LeftUpperArm"},
+        {"UpperTorso", "RightUpperArm"},
+        {"LeftUpperArm", "LeftLowerArm"},
+        {"LeftLowerArm", "LeftHand"},
+        {"RightUpperArm", "RightLowerArm"},
+        {"RightLowerArm", "RightHand"}
+    },
+    R6 = {
+        {"Head", "Torso"},
+        {"Torso", "Left Arm"},
+        {"Torso", "Right Arm"},
+        {"Torso", "Left Leg"},
+        {"Torso", "Right Leg"}
+    }
+}
+
+-- Local variable to toggle ESP visibility
+local SkeleESP = false  -- Set this to true to enable ESP
+
+-- Function to create a new drawing line
+local function createLine()
+    return Drawing.new("Line")
+end
+
+-- Function to update ESP lines for a player
+local function updateESP(player)
+    if player == LocalPlayer or not SkeleESP then return end  -- Check if ESP is enabled
+
+    local character = player.Character
+    if not character or not character:FindFirstChild("HumanoidRootPart") then
+        if espCache[player] then
+            for _, line in pairs(espCache[player]) do
+                line.Visible = false
+            end
+        end
+        return
+    end
+
+    local humanoid = character:FindFirstChild("Humanoid")
+    if not humanoid then return end
+
+    local rigType = humanoid.RigType.Name
+    local connections = bodyConnections[rigType]
+
+    if not connections then return end
+
+    if not espCache[player] then
+        espCache[player] = {}
+        for _, connection in pairs(connections) do
+            local line = createLine()
+            line.Color = Color3.fromRGB(255, 255, 255)
+            line.Thickness = 1
+            espCache[player][connection[1] .. "-" .. connection[2]] = line
+        end
+    end
+
+    for _, connection in pairs(connections) do
+        local partA = character:FindFirstChild(connection[1])
+        local partB = character:FindFirstChild(connection[2])
+        local line = espCache[player][connection[1] .. "-" .. connection[2]]
+
+        if partA and partB and line then
+            local screenPosA, onScreenA = Camera:WorldToViewportPoint(partA.Position)
+            local screenPosB, onScreenB = Camera:WorldToViewportPoint(partB.Position)
+
+            if onScreenA and onScreenB then
+                line.From = Vector2.new(screenPosA.X, screenPosA.Y)
+                line.To = Vector2.new(screenPosB.X, screenPosB.Y)
+                line.Visible = true
+            else
+                line.Visible = false
+            end
+        elseif line then
+            line.Visible = false
+        end
+    end
+end
+
+-- Function to clear ESP for a player
+local function clearESP(player)
+    if espCache[player] then
+        for _, line in pairs(espCache[player]) do
+            line:Remove()
+        end
+        espCache[player] = nil
+    end
+end
+
+-- Update ESP for all players
+RunService.RenderStepped:Connect(function()
+    for _, player in ipairs(Players:GetPlayers()) do
+        updateESP(player)
+    end
+end)
+
+-- Clear ESP when a player leaves
+Players.PlayerRemoving:Connect(clearESP)
