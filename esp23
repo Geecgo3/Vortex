@@ -1,0 +1,30 @@
+-- ESP Settings
+local ESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/linemaster2/esp-library/main/library.lua"))();
+
+-- Master Switch (Initial State)
+local ESPEnabled = false
+
+-- Enable or Disable ESP
+local function toggleESP()
+    ESPEnabled = not ESPEnabled
+    ESP.Enabled = ESPEnabled
+    if ESPEnabled then
+        print("ESP Enabled")
+    else
+        print("ESP Disabled")
+    end
+end
+
+-- Bind the toggle to a key (e.g., "E" key)
+game:GetService("UserInputService").InputBegan:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.N then  -- You can change the key if needed
+        toggleESP()
+    end
+end)
+
+-- Optional: You can add additional ESP settings if needed
+ESP.ShowBox = true
+ESP.BoxType = "Corner Box Esp"
+ESP.ShowHealth = true
+--// Enable Distance
+ESP.ShowDistance = true;
