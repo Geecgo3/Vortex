@@ -41,7 +41,7 @@ local MainVariables = {
 
 -- Tabs
 local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/memejames/elerium-v2-ui-library/main/Library", true))()
-local window = library:AddWindow("Sheet.cc INTERNAL", {
+local window = library:AddWindow("Fusion-ware INTERNAL", {
     main_color = Color3.fromRGB(41, 74, 122), -- Color
     min_size = Vector2.new(750, 646), -- Size of the gui
     can_resize = true, -- true or false
