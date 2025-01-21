@@ -1,4 +1,4 @@
--- Create a Frame to cover the screen
+-- Create a Frame to cover the screen (if it's not already created)
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(1, 0, 1, 0) -- Covers the entire screen
 frame.Position = UDim2.new(0, 0, 0, 0)
@@ -7,7 +7,8 @@ frame.BackgroundTransparency = 0 -- Fully opaque
 frame.ZIndex = 1000 -- Ensure it's on top of most UI elements
 frame.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 
--- Destroy the frame after 6 seconds using delay
-delay(6, function()
-    frame:Destroy()
-end)
+-- Wait for 6 seconds
+wait(6)
+
+-- Destroy the frame after 6 seconds
+frame:Destroy()
