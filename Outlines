@@ -1,0 +1,106 @@
+-- Global Toggles
+getgenv().outline_ENABLED = false  -- Toggle Outline ESP
+getgenv().tracer_ENABLED = false  -- Toggle Tracer ESP
+
+-- Initialize Services
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Camera = game:GetService("Workspace").CurrentCamera
+
+-- Highlight (Outline) Settings
+local Highlight = Instance.new("Highlight")
+Highlight.Name = "Highlight"
+Highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+Highlight.FillTransparency = 0.5  -- You can adjust the transparency for outlines
+Highlight.OutlineTransparency = 0  -- Set to 0 for fully visible outline
+
+-- Function to Apply Outlines to Players
+local function ApplyOutlineToPlayer(player)
+    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        if not player.Character:FindFirstChild("HumanoidRootPart"):FindFirstChild("Highlight") then
+            local HighlightClone = Highlight:Clone()
+            HighlightClone.Adornee = player.Character
+            HighlightClone.Parent = player.Character:FindFirstChild("HumanoidRootPart")
+        end
+    end
+end
+
+-- Function to Remove Outlines from Players
+local function RemoveOutlineFromPlayer(player)
+    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        local existingOutline = player.Character:FindFirstChild("HumanoidRootPart"):FindFirstChild("Highlight")
+        if existingOutline then
+            existingOutline:Destroy()
+        end
+    end
+end
+
+-- Tracer Settings
+local function DrawTracer(player)
+    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        local humanoidRootPart = player.Character.HumanoidRootPart
+        local screenPos, onScreen = Camera:WorldToScreenPoint(humanoidRootPart.Position)
+
+        if onScreen then
+            local tracer = Instance.new("Frame")
+            tracer.Size = UDim2.new(0, 2, 0, screenPos.Y)
+            tracer.Position = UDim2.new(0, screenPos.X - 1, 0, 0)
+            tracer.BackgroundColor3 = Color3.new(1, 0, 0)  -- You can change tracer color here
+            tracer.BorderSizePixel = 0
+            tracer.Parent = game:GetService("CoreGui")
+        end
+    end
+end
+
+-- Function to Apply ESP to All Players
+local function ApplyESP()
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= Players.LocalPlayer then
+            -- Apply Outline if enabled
+            if getgenv().outline_ENABLED then
+                ApplyOutlineToPlayer(player)
+            else
+                RemoveOutlineFromPlayer(player)
+            end
+
+            -- Apply Tracer if enabled
+            if getgenv().tracer_ENABLED then
+                DrawTracer(player)
+            end
+        end
+    end
+end
+
+-- Apply ESP Continuously
+RunService.Heartbeat:Connect(function()
+    ApplyESP()
+end)
+
+-- Ensure initial ESP for existing players
+for _, player in pairs(Players:GetPlayers()) do
+    if player ~= Players.LocalPlayer then
+        if getgenv().outline_ENABLED then
+            ApplyOutlineToPlayer(player)
+        end
+        if getgenv().tracer_ENABLED then
+            DrawTracer(player)
+        end
+    end
+end
+
+-- Handle new players joining the game
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function()
+        if getgenv().outline_ENABLED then
+            ApplyOutlineToPlayer(player)
+        end
+        if getgenv().tracer_ENABLED then
+            DrawTracer(player)
+        end
+    end)
+end)
+
+-- Handle players leaving
+Players.PlayerRemoving:Connect(function(player)
+    RemoveOutlineFromPlayer(player)
+end)
