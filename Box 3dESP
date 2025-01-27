@@ -7,7 +7,7 @@ local localPlayer = players.LocalPlayer
 local camera = workspace.CurrentCamera
 
 -- Settings
-local BOX_COLOR = Color3.fromRGB(255, 255, 0) -- Yellow
+local BOX_COLOR = Color3.fromRGB(255, 255, 255) -- White
 local LINE_THICKNESS = 1 -- Thickness of the box lines
 
 -- Function to create 3D box ESP
