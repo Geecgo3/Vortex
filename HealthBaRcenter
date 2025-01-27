@@ -1,0 +1,126 @@
+-- Global toggle
+getgenv().health_ENABLED = true
+
+-- settings
+local settings = {
+    defaultcolor = Color3.fromRGB(255, 0, 0),
+    teamcheck = false
+}
+
+-- services
+local runService = game:GetService("RunService")
+local players = game:GetService("Players")
+
+-- variables
+local localPlayer = players.LocalPlayer
+local camera = workspace.CurrentCamera
+
+-- functions
+local newVector2, newColor3, newDrawing = Vector2.new, Color3.new, Drawing.new
+local tan, rad = math.tan, math.rad
+local round = function(...) local a = {}; for i,v in next, table.pack(...) do a[i] = math.round(v); end return unpack(a) end
+local wtvp = function(...) local a, b = camera.WorldToViewportPoint(camera, ...) return newVector2(a.X, a.Y), b, a.Z end
+
+local espCache = {}
+
+local function createHealthBar(player)
+    local drawings = {}
+
+    -- Health Bar
+    drawings.healthbar = newDrawing("Square")
+    drawings.healthbar.Filled = true
+    drawings.healthbar.Color = Color3.fromRGB(0, 255, 0)
+    drawings.healthbar.Visible = false
+    drawings.healthbar.ZIndex = 2
+
+    -- Black outline
+    drawings.healthbaroutline = newDrawing("Square")
+    drawings.healthbaroutline.Thickness = 2  -- Outline thickness
+    drawings.healthbaroutline.Filled = false
+    drawings.healthbaroutline.Color = Color3.fromRGB(0, 0, 0)  -- Black outline
+    drawings.healthbaroutline.Visible = false
+    drawings.healthbaroutline.ZIndex = 1
+
+    espCache[player] = drawings
+end
+
+local function removeHealthBar(player)
+    if rawget(espCache, player) then
+        for _, drawing in next, espCache[player] do
+            drawing:Remove()
+        end
+        espCache[player] = nil
+    end
+end
+
+local function updateHealthBar(player, esp)
+    local character = player and player.Character
+    local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+    if character and humanoid then
+        local torso = character:FindFirstChild("UpperTorso") or character:FindFirstChild("HumanoidRootPart")
+        if torso then
+            local cframe = torso.CFrame
+            local position, visible, depth = wtvp(cframe.Position)
+            esp.healthbar.Visible = visible
+            esp.healthbaroutline.Visible = visible
+
+            if cframe and visible then
+                local scaleFactor = 1 / (depth * tan(rad(camera.FieldOfView / 2)) * 2) * 1000
+                local width, height = 2, round(5 * scaleFactor)
+                local x, y = round(position.X, position.Y)
+
+                -- Health Bar
+                local healthRatio = humanoid.Health / humanoid.MaxHealth
+                local healthBarHeight = height * healthRatio
+
+                -- Positioning the health bar to the left side of the torso (fixed side)
+                esp.healthbar.Size = newVector2(width, healthBarHeight)
+                esp.healthbar.Position = newVector2(x - width - 4, y - height / 2 + height - healthBarHeight)  -- Left side
+
+                -- Black outline stays around the health bar
+                esp.healthbaroutline.Size = newVector2(width, height)
+                esp.healthbaroutline.Position = newVector2(x - width - 4, y - height / 2)  -- Left side
+            end
+        end
+    else
+        esp.healthbar.Visible = false
+        esp.healthbaroutline.Visible = false
+    end
+end
+
+-- main
+for _, player in next, players:GetPlayers() do
+    if player ~= localPlayer then
+        createHealthBar(player)
+    end
+end
+
+players.PlayerAdded:Connect(function(player)
+    createHealthBar(player)
+end)
+
+players.PlayerRemoving:Connect(function(player)
+    removeHealthBar(player)
+end)
+
+runService:BindToRenderStep("healthBar", Enum.RenderPriority.Camera.Value, function()
+    if not getgenv().health_ENABLED then
+        -- Hide all health bars if disabled
+        for _, drawings in next, espCache do
+            for _, drawing in pairs(drawings) do
+                drawing.Visible = false
+            end
+        end
+        return
+    end
+
+    for player, drawings in next, espCache do
+        if settings.teamcheck and player.Team == localPlayer.Team then
+            continue
+        end
+
+        if drawings and player ~= localPlayer then
+            updateHealthBar(player, drawings)
+        end
+    end
+end)
