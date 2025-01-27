@@ -1,0 +1,111 @@
+-- Global Toggle for Distance ESP
+getgenv().distance_ENABLED = true  -- Set to true to enable Distance ESP, false to disable
+
+-- settings
+local settings = {
+   defaultcolor = Color3.fromRGB(255, 255, 255), -- white color
+   outlineColor = Color3.fromRGB(0, 0, 0), -- black outline color
+   teamcheck = false, -- remove team check
+   teamcolor = false -- remove team color
+};
+
+-- services
+local runService = game:GetService("RunService")
+local players = game:GetService("Players")
+
+-- variables
+local localPlayer = players.LocalPlayer
+local camera = workspace.CurrentCamera
+
+-- functions
+local newVector2, newColor3, newDrawing = Vector2.new, Color3.new, Drawing.new
+local tan, rad = math.tan, math.rad
+local round = function(...) local a = {}; for i,v in next, table.pack(...) do a[i] = math.round(v); end return unpack(a); end;
+local wtvp = function(...) local a, b = camera.WorldToViewportPoint(camera, ...) return newVector2(a.X, a.Y), b, a.Z end;
+
+local espCache = {}
+local function createEsp(player)
+   local drawings = {}
+
+   -- Add a new text label for displaying the distance
+   drawings.distanceText = newDrawing("Text")
+   drawings.distanceText.Size = 16
+   drawings.distanceText.Color = settings.defaultcolor -- white color
+   drawings.distanceText.Outline = true -- Enable outline for the text
+   drawings.distanceText.OutlineColor = settings.outlineColor -- Black outline for the text
+   drawings.distanceText.Visible = false
+   drawings.distanceText.ZIndex = 3
+
+   espCache[player] = drawings
+end
+
+local function removeEsp(player)
+   if rawget(espCache, player) then
+       for _, drawing in next, espCache[player] do
+           drawing:Remove()
+       end
+       espCache[player] = nil
+   end
+end
+
+local function updateEsp(player, esp)
+   local character = player and player.Character
+   if character then
+       local cframe = character:GetModelCFrame()
+       local position, visible, depth = wtvp(cframe.Position)
+       esp.distanceText.Visible = visible
+
+       if cframe and visible then
+           -- Calculate the distance to the local player
+           local distance = math.floor((localPlayer.Character.HumanoidRootPart.Position - character.HumanoidRootPart.Position).Magnitude)
+           
+           -- Update the distance text
+           esp.distanceText.Text = "[" .. distance .. "m]"
+           local width = esp.distanceText.TextBounds.X
+
+           -- Use WorldToViewportPoint for correct screen positioning
+           local screenPosition = wtvp(cframe.Position + Vector3.new(0, 2.5, 0)) -- Add a small offset above the head
+
+           -- Position the text at the top-center of the player's head
+           if screenPosition then
+               esp.distanceText.Position = newVector2(round(screenPosition.X - width / 2), round(screenPosition.Y))
+           end
+       end
+   else
+       esp.distanceText.Visible = false
+   end
+end
+
+-- main
+for _, player in next, players:GetPlayers() do
+   if player ~= localPlayer then
+       createEsp(player)
+   end
+end
+
+players.PlayerAdded:Connect(function(player)
+   createEsp(player)
+end)
+
+players.PlayerRemoving:Connect(function(player)
+   removeEsp(player)
+end)
+
+runService:BindToRenderStep("esp", Enum.RenderPriority.Camera.Value, function()
+   if getgenv().distance_ENABLED then
+       for player, drawings in next, espCache do
+           if settings.teamcheck and player.Team == localPlayer.Team then
+               continue
+           end
+
+           if drawings and player ~= localPlayer then
+               updateEsp(player, drawings)
+           end
+       end
+   else
+       -- Disable distance ESP by clearing it
+       for player, drawings in next, espCache do
+           removeEsp(player)
+       end
+   end
+end)
