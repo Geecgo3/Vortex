@@ -1,0 +1,110 @@
+-- Global state to toggle ESP
+getgenv().ESP_ENABLED = true -- Set this to `true` initially
+
+local players = game:GetService("Players")
+local runService = game:GetService("RunService")
+local localPlayer = players.LocalPlayer
+local camera = workspace.CurrentCamera
+
+-- Settings
+local BOX_COLOR = Color3.fromRGB(255, 255, 0) -- Yellow
+local LINE_THICKNESS = 1 -- Thickness of the box lines
+
+-- Function to create 3D box ESP
+local function createBox(character)
+    local boxLines = {}
+
+    for i = 1, 12 do
+        local line = Drawing.new("Line")
+        line.Thickness = LINE_THICKNESS
+        line.Color = BOX_COLOR
+        line.Visible = false
+        table.insert(boxLines, line)
+    end
+
+    return boxLines
+end
+
+-- Function to update box ESP
+local function updateBox(character, boxLines)
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    if not rootPart then return end
+
+    -- Define box corners relative to HumanoidRootPart
+    local size = Vector3.new(4, 6, 4) -- Customize box size as needed
+    local corners = {
+        rootPart.CFrame * CFrame.new(-size.X / 2, size.Y / 2, -size.Z / 2).Position, -- Top front left
+        rootPart.CFrame * CFrame.new(size.X / 2, size.Y / 2, -size.Z / 2).Position,  -- Top front right
+        rootPart.CFrame * CFrame.new(-size.X / 2, size.Y / 2, size.Z / 2).Position,  -- Top back left
+        rootPart.CFrame * CFrame.new(size.X / 2, size.Y / 2, size.Z / 2).Position,   -- Top back right
+        rootPart.CFrame * CFrame.new(-size.X / 2, -size.Y / 2, -size.Z / 2).Position, -- Bottom front left
+        rootPart.CFrame * CFrame.new(size.X / 2, -size.Y / 2, -size.Z / 2).Position,  -- Bottom front right
+        rootPart.CFrame * CFrame.new(-size.X / 2, -size.Y / 2, size.Z / 2).Position,  -- Bottom back left
+        rootPart.CFrame * CFrame.new(size.X / 2, -size.Y / 2, size.Z / 2).Position   -- Bottom back right
+    }
+
+    -- Define edges between corners
+    local edges = {
+        {1, 2}, {2, 4}, {4, 3}, {3, 1}, -- Top square
+        {5, 6}, {6, 8}, {8, 7}, {7, 5}, -- Bottom square
+        {1, 5}, {2, 6}, {3, 7}, {4, 8}  -- Vertical edges
+    }
+
+    -- Update lines
+    for i, edge in ipairs(edges) do
+        local corner1, visible1 = camera:WorldToViewportPoint(corners[edge[1]])
+        local corner2, visible2 = camera:WorldToViewportPoint(corners[edge[2]])
+
+        if visible1 and visible2 then
+            boxLines[i].From = Vector2.new(corner1.X, corner1.Y)
+            boxLines[i].To = Vector2.new(corner2.X, corner2.Y)
+            boxLines[i].Visible = true
+        else
+            boxLines[i].Visible = false
+        end
+    end
+end
+
+-- Function to remove ESP
+local function removeBox(boxLines)
+    for _, line in ipairs(boxLines) do
+        line:Remove()
+    end
+end
+
+-- Main logic
+local espCache = {}
+
+runService.RenderStepped:Connect(function()
+    if not getgenv().ESP_ENABLED then
+        -- Disable all ESP lines
+        for _, boxLines in pairs(espCache) do
+            removeBox(boxLines)
+        end
+        espCache = {}
+        return
+    end
+
+    for _, player in pairs(players:GetPlayers()) do
+        if player ~= localPlayer and player.Character then
+            local character = player.Character
+            local boxLines = espCache[player]
+
+            if not boxLines then
+                espCache[player] = createBox(character)
+            else
+                updateBox(character, boxLines)
+            end
+        elseif espCache[player] then
+            removeBox(espCache[player])
+            espCache[player] = nil
+        end
+    end
+end)
+
+players.PlayerRemoving:Connect(function(player)
+    if espCache[player] then
+        removeBox(espCache[player])
+        espCache[player] = nil
+    end
+end)
