@@ -21,7 +21,7 @@ local function createTracer(player)
 
     local tracer = Drawing.new("Line")
     tracer.Thickness = 1
-    tracer.Color = Color3.fromRGB(255, 0, 0) -- Red color
+    tracer.Color = Color3.fromRGB(255, 255, 255) -- Red color
     tracer.Transparency = 1
     tracer.Visible = false
     tracers[player] = tracer
