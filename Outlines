@@ -1,5 +1,5 @@
 -- Global Toggles
-getgenv().outline_ENABLED = false  -- Toggle Outline ESP
+getgenv().outline_ENABLED = true  -- Toggle Outline ESP
 getgenv().tracer_ENABLED = false  -- Toggle Tracer ESP
 
 -- Initialize Services
