@@ -1,0 +1,149 @@
+--// Global toggle
+getgenv().cornoresp_ENABLED = true
+
+--// Variables
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local localPlayer = Players.LocalPlayer
+local camera = workspace.CurrentCamera
+local cache = {}
+
+--// Settings
+local ESP_SETTINGS = {
+    BoxColor = Color3.new(1, 1, 1),
+    BoxOutlineColor = Color3.new(0, 0, 0),
+    CharSize = Vector2.new(4, 6),
+    Teamcheck = false,
+    WallCheck = false,
+}
+
+local function create(class, properties)
+    local drawing = Drawing.new(class)
+    for property, value in pairs(properties) do
+        drawing[property] = value
+    end
+    return drawing
+end
+
+local function createEsp(player)
+    if cache[player] then return end
+    local esp = { boxLines = {} }
+
+    -- Create corner box lines
+    for _ = 1, 8 do
+        local line = create("Line", {
+            Thickness = 1,
+            Color = ESP_SETTINGS.BoxColor,
+            Transparency = 1
+        })
+        table.insert(esp.boxLines, line)
+    end
+
+    cache[player] = esp
+end
+
+local function removeEsp(player)
+    local esp = cache[player]
+    if not esp then return end
+
+    for _, line in pairs(esp.boxLines) do
+        line:Remove()
+    end
+
+    cache[player] = nil
+end
+
+local function updateEsp()
+    if not getgenv().cornoresp_ENABLED then
+        -- Hide all ESP lines if disabled
+        for _, esp in pairs(cache) do
+            for _, line in pairs(esp.boxLines) do
+                line.Visible = false
+            end
+        end
+        return
+    end
+
+    for player, esp in pairs(cache) do
+        local character = player.Character
+        local team = player.Team
+
+        if character and (not ESP_SETTINGS.Teamcheck or team ~= localPlayer.Team) then
+            local rootPart = character:FindFirstChild("HumanoidRootPart")
+            if rootPart then
+                local position, onScreen = camera:WorldToViewportPoint(rootPart.Position)
+                if onScreen then
+                    local hrp2D = camera:WorldToViewportPoint(rootPart.Position)
+                    local charSize = (camera:WorldToViewportPoint(rootPart.Position - Vector3.new(0, 3, 0)).Y - camera:WorldToViewportPoint(rootPart.Position + Vector3.new(0, 2.6, 0)).Y) / 2
+                    local boxSize = Vector2.new(math.floor(charSize * 1.8), math.floor(charSize * 1.9))
+                    local boxPosition = Vector2.new(math.floor(hrp2D.X - charSize * 1.8 / 2), math.floor(hrp2D.Y - charSize * 1.6 / 2))
+
+                    local lineW = boxSize.X / 4
+                    local lineH = boxSize.Y / 4
+
+                    -- Top left
+                    esp.boxLines[1].From = boxPosition
+                    esp.boxLines[1].To = Vector2.new(boxPosition.X + lineW, boxPosition.Y)
+
+                    esp.boxLines[2].From = boxPosition
+                    esp.boxLines[2].To = Vector2.new(boxPosition.X, boxPosition.Y + lineH)
+
+                    -- Top right
+                    esp.boxLines[3].From = Vector2.new(boxPosition.X + boxSize.X, boxPosition.Y)
+                    esp.boxLines[3].To = Vector2.new(boxPosition.X + boxSize.X - lineW, boxPosition.Y)
+
+                    esp.boxLines[4].From = Vector2.new(boxPosition.X + boxSize.X, boxPosition.Y)
+                    esp.boxLines[4].To = Vector2.new(boxPosition.X + boxSize.X, boxPosition.Y + lineH)
+
+                    -- Bottom left
+                    esp.boxLines[5].From = Vector2.new(boxPosition.X, boxPosition.Y + boxSize.Y)
+                    esp.boxLines[5].To = Vector2.new(boxPosition.X + lineW, boxPosition.Y + boxSize.Y)
+
+                    esp.boxLines[6].From = Vector2.new(boxPosition.X, boxPosition.Y + boxSize.Y)
+                    esp.boxLines[6].To = Vector2.new(boxPosition.X, boxPosition.Y + boxSize.Y - lineH)
+
+                    -- Bottom right
+                    esp.boxLines[7].From = Vector2.new(boxPosition.X + boxSize.X, boxPosition.Y + boxSize.Y)
+                    esp.boxLines[7].To = Vector2.new(boxPosition.X + boxSize.X - lineW, boxPosition.Y + boxSize.Y)
+
+                    esp.boxLines[8].From = Vector2.new(boxPosition.X + boxSize.X, boxPosition.Y + boxSize.Y)
+                    esp.boxLines[8].To = Vector2.new(boxPosition.X + boxSize.X, boxPosition.Y + boxSize.Y - lineH)
+
+                    for _, line in pairs(esp.boxLines) do
+                        line.Visible = true
+                        line.Color = ESP_SETTINGS.BoxColor
+                    end
+                else
+                    for _, line in pairs(esp.boxLines) do
+                        line.Visible = false
+                    end
+                end
+            else
+                for _, line in pairs(esp.boxLines) do
+                    line.Visible = false
+                end
+            end
+        else
+            for _, line in pairs(esp.boxLines) do
+                line.Visible = false
+            end
+        end
+    end
+end
+
+--// Connections
+RunService.RenderStepped:Connect(updateEsp)
+
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function()
+        createEsp(player)
+    end)
+end)
+
+Players.PlayerRemoving:Connect(removeEsp)
+
+for _, player in ipairs(Players:GetPlayers()) do
+    if player ~= localPlayer then
+        createEsp(player)
+    end
+end
