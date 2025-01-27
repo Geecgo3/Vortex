@@ -1,0 +1,90 @@
+-- Global toggle to enable/disable name Billboards
+getgenv().name_ENABLED = true -- Set to false to disable
+
+-- Create a BillboardGui for each player to display their name and distance
+function createBillboardGui(player)
+    -- Ensure the player has a character and the head exists
+    local character = player.Character or player.CharacterAdded:Wait()
+    local head = character:WaitForChild("Head", 10) -- Timeout after 10 seconds
+
+    if not head then
+        print("Error: Head part not found for player " .. player.Name)
+        return
+    end
+
+    local billboardGui = Instance.new("BillboardGui")
+    billboardGui.Name = "NameAndDistanceGui"
+    billboardGui.AlwaysOnTop = true
+    billboardGui.Size = UDim2.new(0, 200, 0, 50)
+    billboardGui.StudsOffset = Vector3.new(0, 3, 0)
+    billboardGui.Parent = head -- Parent it to the player's head
+
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Name = "NameLabel"
+    nameLabel.Text = player.Name
+    nameLabel.Font = Enum.Font.SourceSansBold
+    nameLabel.TextSize = 18
+    nameLabel.TextColor3 = Color3.new(1, 1, 1)
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.Size = UDim2.new(1, 0, 0.5, 0)
+    nameLabel.Position = UDim2.new(0, 0, 0, 0)
+    nameLabel.Parent = billboardGui
+
+    -- Set visibility based on the global toggle (immediately after creation)
+    nameLabel.Visible = getgenv().name_ENABLED
+end
+
+-- Function to toggle visibility of name labels for all players
+function updateNameVisibility()
+    for _, player in pairs(game.Players:GetPlayers()) do
+        local character = player.Character
+        if character then
+            local nameLabel = character:FindFirstChild("Head"):FindFirstChild("NameAndDistanceGui")
+            if nameLabel then
+                local label = nameLabel:FindFirstChild("NameLabel")
+                if label then
+                    label.Visible = getgenv().name_ENABLED
+                end
+            end
+        end
+    end
+end
+
+-- Create a BillboardGui for each player currently in the game
+local playerBillboards = {}
+for _, player in pairs(game.Players:GetPlayers()) do
+    -- Check if player is loaded
+    player.CharacterAdded:Connect(function(character)
+        createBillboardGui(player)
+        updateNameVisibility() -- Update the visibility when a new player spawns
+    end)
+
+    -- Create the BillboardGui for already existing players
+    if player.Character then
+        createBillboardGui(player)
+    end
+end
+
+-- Recreate the BillboardGui if a player respawns
+game.Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function()
+        createBillboardGui(player)
+        updateNameVisibility() -- Update visibility for new players joining
+    end)
+end)
+
+-- Listen for changes in the name_ENABLED toggle and update visibility dynamically
+game:GetService("RunService").Heartbeat:Connect(function()
+    updateNameVisibility()
+end)
+
+game.Players.PlayerRemoving:Connect(function(player)
+    -- Clean up if needed
+    local character = player.Character
+    if character then
+        local billboardGui = character:FindFirstChild("Head"):FindFirstChild("NameAndDistanceGui")
+        if billboardGui then
+            billboardGui:Destroy()
+        end
+    end
+end)
