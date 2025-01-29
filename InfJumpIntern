@@ -1,0 +1,33 @@
+-- Infinite Jump Script using JumpRequest method
+local player = game.Players.LocalPlayer
+
+-- Make sure the state of InfiniteJumpEnabled persists across resets
+if not getgenv().InfiniteJumpEnabled then
+    getgenv().InfiniteJumpEnabled = true  -- Enable infinite jump by default
+end
+
+-- Function to stop infinite jump
+local function stopInfJump()
+    getgenv().InfiniteJumpEnabled = false
+end
+
+-- Define the global StopInfJump function using getgenv()
+getgenv().StopInfJump = stopInfJump
+
+-- Listen for respawn and restart infinite jump functionality
+player.CharacterAdded:Connect(function(character)
+    -- If infinite jump was disabled, make sure to keep it disabled even after reset
+    if not getgenv().InfiniteJumpEnabled then
+        return  -- Don't enable infinite jump after respawn if it was disabled
+    end
+end)
+
+-- Listen for jump request and trigger infinite jump
+game:GetService("UserInputService").JumpRequest:Connect(function()
+    if getgenv().InfiniteJumpEnabled then
+        local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid:ChangeState("Jumping")  -- Trigger jump when JumpRequest is received
+        end
+    end
+end)
