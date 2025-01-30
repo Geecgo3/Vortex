@@ -1,0 +1,81 @@
+-- CFrame Fly with Floating & Toggle
+
+if getgenv().CFrameFlyConnection then
+    getgenv().CFrameFlyConnection:Disconnect()
+end
+
+getgenv().CFrameFlyEnabled = true
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local RootPart = Character:WaitForChild("HumanoidRootPart")
+local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+local FlySpeed = 0.01 -- Adjust speed
+
+local BodyVelocity = Instance.new("BodyVelocity")
+BodyVelocity.Velocity = Vector3.new(0, 0, 0)
+BodyVelocity.MaxForce = Vector3.new(0, math.huge, 0) -- Keeps player floating
+
+-- Function to enable floating
+local function EnableFloating()
+    BodyVelocity.Parent = RootPart
+end
+
+-- Function to disable floating (restores gravity)
+local function DisableFloating()
+    BodyVelocity.Parent = nil
+end
+
+local function Fly()
+    EnableFloating() -- Keeps floating when toggled off
+
+    while getgenv().CFrameFlyEnabled do
+        local MoveDirection = Vector3.new()
+
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+            MoveDirection = MoveDirection + (workspace.CurrentCamera.CFrame.LookVector * FlySpeed)
+        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+            MoveDirection = MoveDirection - (workspace.CurrentCamera.CFrame.LookVector * FlySpeed)
+        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+            MoveDirection = MoveDirection - (workspace.CurrentCamera.CFrame.RightVector * FlySpeed)
+        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+            MoveDirection = MoveDirection + (workspace.CurrentCamera.CFrame.RightVector * FlySpeed)
+        end
+
+        RootPart.CFrame = RootPart.CFrame + MoveDirection
+        RunService.Stepped:Wait()
+    end
+
+    EnableFloating() -- Stay floating when stopping fly
+end
+
+getgenv().CFrameFlyConnection = RunService.RenderStepped:Connect(Fly)
+
+getgenv().StopCframeFly = function()
+    getgenv().CFrameFlyEnabled = false
+    if getgenv().CFrameFlyConnection then
+        getgenv().CFrameFlyConnection:Disconnect()
+    end
+    EnableFloating() -- Keeps floating after stopping
+end
+
+-- Ensures fly persists after reset
+LocalPlayer.CharacterAdded:Connect(function(newCharacter)
+    Character = newCharacter
+    RootPart = Character:WaitForChild("HumanoidRootPart")
+    Humanoid = Character:FindFirstChildOfClass("Humanoid")
+
+    BodyVelocity = Instance.new("BodyVelocity")
+    BodyVelocity.Velocity = Vector3.new(0, 0, 0)
+    BodyVelocity.MaxForce = Vector3.new(0, math.huge, 0)
+
+    if getgenv().CFrameFlyEnabled then
+        getgenv().CFrameFlyConnection = RunService.RenderStepped:Connect(Fly)
+    end
+end)
