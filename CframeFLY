@@ -1,10 +1,12 @@
--- CFrame Fly with Floating & Toggle
-
+-- Make sure to disconnect any existing connections when starting
 if getgenv().CFrameFlyConnection then
     getgenv().CFrameFlyConnection:Disconnect()
 end
 
-getgenv().CFrameFlyEnabled = true
+-- Default toggle keybind is F
+getgenv().CFrameFlyKeybind = Enum.KeyCode.F
+
+getgenv().CFrameFlyEnabled = false
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -13,7 +15,7 @@ local LocalPlayer = Players.LocalPlayer
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local RootPart = Character:WaitForChild("HumanoidRootPart")
 local Humanoid = Character:FindFirstChildOfClass("Humanoid")
-local FlySpeed = 0.01 -- Adjust speed
+local FlySpeed = 0.5 -- Adjust speed
 
 local BodyVelocity = Instance.new("BodyVelocity")
 BodyVelocity.Velocity = Vector3.new(0, 0, 0)
@@ -52,7 +54,7 @@ local function Fly()
         RunService.Stepped:Wait()
     end
 
-    EnableFloating() -- Stay floating when stopping fly
+    DisableFloating() -- Stop floating after fly is turned off
 end
 
 getgenv().CFrameFlyConnection = RunService.RenderStepped:Connect(Fly)
@@ -62,8 +64,26 @@ getgenv().StopCframeFly = function()
     if getgenv().CFrameFlyConnection then
         getgenv().CFrameFlyConnection:Disconnect()
     end
-    EnableFloating() -- Keeps floating after stopping
+    DisableFloating() -- Stop floating after stopping fly
 end
+
+-- Switch the fly toggle keybind dynamically
+getgenv().SetFlyKeybind = function(newKeybind)
+    getgenv().CFrameFlyKeybind = newKeybind
+end
+
+-- Detect key press to toggle fly
+UserInputService.InputBegan:Connect(function(input)
+    if input.KeyCode == getgenv().CFrameFlyKeybind then
+        getgenv().CFrameFlyEnabled = not getgenv().CFrameFlyEnabled
+
+        if getgenv().CFrameFlyEnabled then
+            print("Fly Enabled")
+        else
+            print("Fly Disabled")
+        end
+    end
+end)
 
 -- Ensures fly persists after reset
 LocalPlayer.CharacterAdded:Connect(function(newCharacter)
