@@ -1,0 +1,109 @@
+-- Fly script with WASD control that re-executes on respawn
+local player = game.Players.LocalPlayer
+local flying = false
+local flySpeed = 50  -- Set your speed here
+local bodyGyro, bodyVelocity
+local moveDirection = Vector3.new(0, 0, 0)
+local canFly = true  -- Flag to control if flying should be enabled
+
+-- Function to handle keyboard input
+local function onInputBegan(input, gameProcessed)
+    if gameProcessed then return end
+    
+    if input.UserInputType == Enum.UserInputType.Keyboard then
+        if input.KeyCode == Enum.KeyCode.W then
+            moveDirection = moveDirection + Vector3.new(0, 0, 1)
+        elseif input.KeyCode == Enum.KeyCode.A then
+            moveDirection = moveDirection + Vector3.new(-1, 0, 0)
+        elseif input.KeyCode == Enum.KeyCode.S then
+            moveDirection = moveDirection + Vector3.new(0, 0, -1)
+        elseif input.KeyCode == Enum.KeyCode.D then
+            moveDirection = moveDirection + Vector3.new(1, 0, 0)
+        end
+    end
+end
+
+local function onInputEnded(input)
+    if input.UserInputType == Enum.UserInputType.Keyboard then
+        if input.KeyCode == Enum.KeyCode.W then
+            moveDirection = moveDirection - Vector3.new(0, 0, 1)
+        elseif input.KeyCode == Enum.KeyCode.A then
+            moveDirection = moveDirection - Vector3.new(-1, 0, 0)
+        elseif input.KeyCode == Enum.KeyCode.S then
+            moveDirection = moveDirection - Vector3.new(0, 0, -1)
+        elseif input.KeyCode == Enum.KeyCode.D then
+            moveDirection = moveDirection - Vector3.new(1, 0, 0)
+        end
+    end
+end
+
+-- Function to start flying
+local function startFlying()
+    if flying or not canFly then return end  -- Don't start flying if flying is already on or canFly is false
+    flying = true
+    
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+    
+    -- Create BodyGyro and BodyVelocity for flying
+    bodyGyro = Instance.new("BodyGyro")
+    bodyGyro.MaxTorque = Vector3.new(400000, 400000, 400000)
+    bodyGyro.D = 5
+    bodyGyro.CFrame = humanoidRootPart.CFrame
+    bodyGyro.Parent = humanoidRootPart
+    
+    bodyVelocity = Instance.new("BodyVelocity")
+    bodyVelocity.MaxForce = Vector3.new(400000, 400000, 400000)
+    bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+    bodyVelocity.Parent = humanoidRootPart
+    
+    -- Fly movement loop
+    game:GetService("RunService").Heartbeat:Connect(function()
+        if flying then
+            -- Apply flying movement based on camera direction and WASD input
+            local camera = game.Workspace.CurrentCamera
+            local cameraDirection = camera.CFrame.LookVector * moveDirection.Z + camera.CFrame.RightVector * moveDirection.X
+            local direction = cameraDirection * flySpeed + Vector3.new(0, 5, 0)  -- Slight upward velocity to keep flying
+            bodyVelocity.Velocity = direction
+        end
+    end)
+end
+
+-- Function to stop flying
+local function stopFlying()
+    if not flying then return end
+    flying = false
+    
+    -- Remove BodyGyro and BodyVelocity
+    if bodyGyro then
+        bodyGyro:Destroy()
+    end
+    if bodyVelocity then
+        bodyVelocity:Destroy()
+    end
+end
+
+-- Define the global StopFly function using getgenv()
+getgenv().StopFly = function()
+    stopFlying()
+    canFly = false  -- Prevent flying from starting again
+end
+
+-- Listen for respawn and restart the flying function
+player.CharacterAdded:Connect(function(character)
+    -- Only start flying again if canFly is true
+    if canFly then
+        stopFlying()
+        wait(1)  -- Add a small wait to allow the character to load properly
+        startFlying()
+    end
+end)
+
+-- Start flying automatically when executed (if the character is already loaded)
+if player.Character and canFly then
+    startFlying()
+end
+
+-- Connect to input events for WASD control
+game:GetService("UserInputService").InputBegan:Connect(onInputBegan)
+game:GetService("UserInputService").InputEnded:Connect(onInputEnded)
