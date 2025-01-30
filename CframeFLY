@@ -32,29 +32,43 @@ local function DisableFloating()
 end
 
 local function Fly()
-    EnableFloating() -- Keeps floating when toggled off
+    if not getgenv().CFrameFlyEnabled then
+        DisableFloating()
+        return
+    end
+    
+    -- Enable floating only when fly is enabled
+    EnableFloating()
+
+    -- Throttle key checks to reduce unnecessary updates
+    local lastUpdate = tick()
 
     while getgenv().CFrameFlyEnabled do
-        local MoveDirection = Vector3.new()
+        if tick() - lastUpdate > 0.1 then -- Throttle update every 0.1 seconds
+            local MoveDirection = Vector3.new()
 
-        if UserInputService:IsKeyDown(Enum.KeyCode.W) then
-            MoveDirection = MoveDirection + (workspace.CurrentCamera.CFrame.LookVector * FlySpeed)
-        end
-        if UserInputService:IsKeyDown(Enum.KeyCode.S) then
-            MoveDirection = MoveDirection - (workspace.CurrentCamera.CFrame.LookVector * FlySpeed)
-        end
-        if UserInputService:IsKeyDown(Enum.KeyCode.A) then
-            MoveDirection = MoveDirection - (workspace.CurrentCamera.CFrame.RightVector * FlySpeed)
-        end
-        if UserInputService:IsKeyDown(Enum.KeyCode.D) then
-            MoveDirection = MoveDirection + (workspace.CurrentCamera.CFrame.RightVector * FlySpeed)
-        end
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+                MoveDirection = MoveDirection + (workspace.CurrentCamera.CFrame.LookVector * FlySpeed)
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+                MoveDirection = MoveDirection - (workspace.CurrentCamera.CFrame.LookVector * FlySpeed)
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+                MoveDirection = MoveDirection - (workspace.CurrentCamera.CFrame.RightVector * FlySpeed)
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+                MoveDirection = MoveDirection + (workspace.CurrentCamera.CFrame.RightVector * FlySpeed)
+            end
 
-        RootPart.CFrame = RootPart.CFrame + MoveDirection
+            -- Apply the movement only when necessary
+            RootPart.CFrame = RootPart.CFrame + MoveDirection
+            lastUpdate = tick()
+        end
         RunService.Stepped:Wait()
     end
 
-    DisableFloating() -- Stop floating after fly is turned off
+    -- Disable floating once fly is turned off
+    DisableFloating()
 end
 
 getgenv().CFrameFlyConnection = RunService.RenderStepped:Connect(Fly)
@@ -99,3 +113,29 @@ LocalPlayer.CharacterAdded:Connect(function(newCharacter)
         getgenv().CFrameFlyConnection = RunService.RenderStepped:Connect(Fly)
     end
 end)
+
+-- Clean up and destroy the script
+getgenv().CFrameFlyDestroy = function()
+    -- Stop fly if it's enabled
+    getgenv().StopCframeFly()
+
+    -- Disconnect all connections
+    if getgenv().CFrameFlyConnection then
+        getgenv().CFrameFlyConnection:Disconnect()
+    end
+
+    -- Reset variables
+    getgenv().CFrameFlyEnabled = false
+    getgenv().CFrameFlyConnection = nil
+    getgenv().CFrameFlyKeybind = nil
+    getgenv().StopCframeFly = nil
+    getgenv().SetFlyKeybind = nil
+
+    -- Remove BodyVelocity from the character
+    if BodyVelocity.Parent then
+        BodyVelocity.Parent = nil
+    end
+
+    -- Optionally destroy the script if you want to completely remove it
+    script:Destroy()
+end
